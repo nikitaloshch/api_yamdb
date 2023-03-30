@@ -51,7 +51,7 @@ class User(AbstractUser):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
@@ -62,7 +62,7 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=256)
     slug = models.SlugField(max_length=50, unique=True)
 
     class Meta:
@@ -73,12 +73,12 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=250)
+    name = models.CharField(max_length=256)
     year = models.IntegerField(
         blank=True,
         validators=[MaxValueValidator(int(datetime.now().year))],
     )
-    description = models.TextField(lank=True)
+    description = models.TextField(blank=True)
     genre = models.ManyToManyField(
         Genre,
         related_name="titles",
