@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator
 from django.db import models
 
 ADMIN = 'admin'
@@ -45,3 +48,51 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ['username', ]
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=250)
+    slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name_plural = "Категории"
+
+    def __str__(self):
+        return self.slug
+
+
+class Genre(models.Model):
+    name = models.CharField(max_length=250)
+    slug = models.SlugField(max_length=50, unique=True)
+
+    class Meta:
+        verbose_name_plural = "Жанры"
+
+    def __str__(self):
+        return self.slug
+
+
+class Title(models.Model):
+    name = models.CharField(max_length=250)
+    year = models.IntegerField(
+        blank=True,
+        validators=[MaxValueValidator(int(datetime.now().year))],
+    )
+    description = models.TextField(lank=True)
+    genre = models.ManyToManyField(
+        Genre,
+        related_name="titles",
+    )
+    category = models.ForeignKey(
+        Category,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="titles",
+    )
+
+    class Meta:
+        verbose_name_plural = "Произведения"
+
+    def __str__(self):
+        return self.name
