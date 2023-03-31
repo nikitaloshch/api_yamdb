@@ -10,14 +10,16 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from reviews.models import User
+from reviews.models import User, Review, Comment, Title
 
-from .permissions import IsAdmin
+from .permissions import IsAdmin, IsAuthorOrModerator
 from .serializers import (
     AuthSerializer,
     ProfileSerializer,
     SignUpSerializer,
     UserSerializer,
+    CommentSerializer,
+    ReviewSerializer,
 )
 
 
@@ -83,3 +85,37 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    """Вьюсет для обьектов модели Comment."""
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthorOrModerator,)
+
+    def perform_create(self, serializer):
+        review_id = self.kwargs.get("review_id")
+        review = get_object_or_404(Review, pk=review_id)
+        serializer.save(author=self.request.user, review=review)
+
+    def get_queryset(self):
+        review_id = self.kwargs.get("review_id")
+        review = get_object_or_404(Review, pk=review_id)
+        return review.comments.all()
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    """Вьюсет для обьектов модели Review."""
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = (IsAuthorOrModerator,)
+
+    def perform_create(self, serializer):
+        title_id = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, pk=title_id)
+        serializer.save(author=self.request.user, title=title)
+
+    def get_queryset(self):
+        title_id = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, pk=title_id)
+        return title.review.all()
