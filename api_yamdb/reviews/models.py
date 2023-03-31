@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 ADMIN = 'admin'
@@ -96,3 +96,79 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Review(models.Model):
+    text = models.TextField(
+        verbose_name='Текст',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Автор',
+    )
+    pub_date = models.DateTimeField(
+        verbose_name='Дата публикации',
+        auto_now_add=True,
+    )
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Произведение',
+        null=True
+    )
+    score = models.PositiveIntegerField(
+        verbose_name='Oценка',
+        validators=[
+            MinValueValidator(
+                1,
+                'Оценка не может быть меньше 1'
+            ),
+            MaxValueValidator(
+                10,
+                'Оценка не может быть больше 10'
+            ),
+        ]
+    )
+
+    class Meta:
+        verbose_name_plural = "Отзывы"
+        ordering = ('-pub_date',)
+        constraints = [
+            models.UniqueConstraint(fields=['author', 'title'],
+                                    name='unique_review')
+        ]
+
+    def __str__(self):
+        return self.text
+
+
+class Comment(models.Model):
+    text = models.TextField(
+        verbose_name='Текст',
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор',
+    )
+    pub_date = models.DateTimeField(
+        verbose_name='Дата публикации',
+        auto_now_add=True,
+    )
+    review = models.ForeignKey(
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Отзыв',
+    )
+
+    class Meta:
+        verbose_name_plural = "Комментарии"
+        ordering = ('-pub_date',)
+
+    def __str__(self):
+        return self.text

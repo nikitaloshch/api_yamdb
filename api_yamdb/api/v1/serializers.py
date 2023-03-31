@@ -1,9 +1,10 @@
 import re
 import uuid
 
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
-from reviews.models import CHOICES, User
+from reviews.models import Comment, CHOICES, Review, Title, User
 
 
 class ErrorMessage:
@@ -13,7 +14,6 @@ class ErrorMessage:
     NO_CODE = "Enter confirmation code"
     USERNAME_NOT_UNIQUE = "Username is not unique"
     EMAIL_NOT_UNIQUE = "Email is not unique"
-
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -96,3 +96,39 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(UserSerializer):
     role = serializers.CharField(read_only=True)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only='True',
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        model = Review
+        fields = '__all__'
+        read_only_fields = ('title',)
+
+    def validate_review(self, data):
+        request = self.context['request']
+        title_id = self.kwargs.get("title_id")
+        title = get_object_or_404(Title, pk=title_id)
+        if Review.objects.filter(title=title, author=request.user).exists():
+            raise serializers.ValidationError(
+                "Нельзя добавить больше 1 комментария"
+            )
+        return data
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only='True',
+        default=serializers.CurrentUserDefault(),
+    )
+
+    class Meta:
+        model = Comment
+        fields = '__all__'
+        read_only_fields = ('review',)
