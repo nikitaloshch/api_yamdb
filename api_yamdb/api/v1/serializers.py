@@ -2,9 +2,10 @@ import re
 import uuid
 
 from django.shortcuts import get_object_or_404
+from django.db.models import Avg
 from rest_framework import serializers
 
-from reviews.models import Comment, CHOICES, Review, Title, User
+from reviews.models import Comment, CHOICES, Review, User, Category, Genre, Title
 
 
 class ErrorMessage:
@@ -96,6 +97,47 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ProfileSerializer(UserSerializer):
     role = serializers.CharField(read_only=True)
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("name", "slug")
+        model = Genre
+        lookup_field = "slug"
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = ("name", "slug")
+        model = Category
+        lookup_field = "slug"
+
+
+class TitleRetrieveSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(read_only=True, many=True)
+    rating = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        fields = "__all__"
+        model = Title
+
+    def get_rating(self, obj):
+        obj = obj.reviews.all().aggregate(rating=Avg("score"))
+        return obj["rating"]
+
+
+class TitleWriteSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(), slug_field="slug"
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(), slug_field="slug", many=True
+    )
+
+    class Meta:
+        fields = ("id", "name", "description", "year", "category", "genre")
+        model = Title
 
 
 class ReviewSerializer(serializers.ModelSerializer):
