@@ -117,7 +117,6 @@ class Review(models.Model):
         on_delete=models.CASCADE,
         related_name='reviews',
         verbose_name='Произведение',
-        null=True
     )
     score = models.PositiveIntegerField(
         verbose_name='Oценка',
@@ -137,8 +136,10 @@ class Review(models.Model):
         verbose_name_plural = "Отзывы"
         ordering = ('-pub_date',)
         constraints = [
-            models.UniqueConstraint(fields=['author', 'title'],
-                                    name='unique_review')
+            models.UniqueConstraint(
+                fields=['title', 'author'],
+                name='unique_review'
+            )
         ]
 
     def __str__(self):

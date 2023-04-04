@@ -5,7 +5,8 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from rest_framework import serializers
 
-from reviews.models import Comment, CHOICES, Review, User, Category, Genre, Title
+from reviews.models import (
+    Category, Comment, CHOICES, Genre, Review, Title, User)
 
 
 class ErrorMessage:
@@ -146,20 +147,26 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only='True',
         default=serializers.CurrentUserDefault(),
     )
+    title = serializers.SlugRelatedField(
+        slug_field='name',
+        read_only=True
+    )
 
     class Meta:
         model = Review
         fields = '__all__'
-        read_only_fields = ('title',)
 
     def validate_review(self, data):
         request = self.context['request']
-        title_id = self.kwargs.get("title_id")
+        title_id = self.context['view'].kwargs.get('title_id')
         title = get_object_or_404(Title, pk=title_id)
-        if Review.objects.filter(title=title, author=request.user).exists():
-            raise serializers.ValidationError(
-                "Нельзя добавить больше 1 комментария"
-            )
+        if request.method == 'POST':
+            if Review.objects.filter(
+                title=title, author=request.user
+            ).exists():
+                raise serializers.ValidationError(
+                    "Нельзя добавить больше 1 комментария"
+                )
         return data
 
 
@@ -169,8 +176,11 @@ class CommentSerializer(serializers.ModelSerializer):
         read_only='True',
         default=serializers.CurrentUserDefault(),
     )
+    review = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='text'
+    )
 
     class Meta:
         model = Comment
         fields = '__all__'
-        read_only_fields = ('review',)
