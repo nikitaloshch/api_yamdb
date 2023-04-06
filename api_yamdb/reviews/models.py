@@ -13,6 +13,7 @@ CHOICES = (
     (MODERATOR, MODERATOR),
     (USER, USER),
 )
+TWENTY: int = 20
 
 
 class User(AbstractUser):
@@ -143,7 +144,7 @@ class Review(models.Model):
         ]
 
     def __str__(self):
-        return self.text
+        return self.text[:TWENTY]
 
 
 class Comment(models.Model):
@@ -172,4 +173,4 @@ class Comment(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.text
+        return self.text[:TWENTY]
