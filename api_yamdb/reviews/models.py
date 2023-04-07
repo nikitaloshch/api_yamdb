@@ -35,6 +35,7 @@ class Title(models.Model):
     year = models.IntegerField(
         blank=True,
         validators=[MaxValueValidator(int(datetime.now().year))],
+        db_index=True,
     )
     description = models.TextField(blank=True)
     genre = models.ManyToManyField(
