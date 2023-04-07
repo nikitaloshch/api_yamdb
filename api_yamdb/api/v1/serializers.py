@@ -1,12 +1,13 @@
 import re
 import uuid
 
-from django.shortcuts import get_object_or_404
 from django.db.models import Avg
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from reviews.models import (
-    Category, Comment, CHOICES, Genre, Review, Title, User)
+    Category, Comment, Genre, Review, Title)
+from users.models import User, CHOICES
 
 
 class ErrorMessage:
@@ -16,6 +17,7 @@ class ErrorMessage:
     NO_CODE = "Enter confirmation code"
     USERNAME_NOT_UNIQUE = "Username is not unique"
     EMAIL_NOT_UNIQUE = "Email is not unique"
+    CONF_CODE_NOT_MATCH = "Confirmation code doesnt match the user"
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -47,6 +49,10 @@ class SignUpSerializer(serializers.Serializer):
             raise serializers.ValidationError(ErrorMessage.EMAIL_NOT_UNIQUE)
         return data
 
+    class Meta:
+        model = User
+        fields = ["email", "username", ]
+
 
 class AuthSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
@@ -59,6 +65,10 @@ class AuthSerializer(serializers.Serializer):
             raise serializers.ValidationError(ErrorMessage.NO_USERNAME)
         if not confirmation_code:
             raise serializers.ValidationError(ErrorMessage.NO_CODE)
+
+        user = get_object_or_404(User, username=username)
+        if confirmation_code != user.confirmation_code:
+            raise serializers.ValidationError(ErrorMessage.CONF_CODE_NOT_MATCH)
         return data
 
 
@@ -159,10 +169,9 @@ class ReviewSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context['request']
         title_id = self.context['view'].kwargs.get('title_id')
-        title = get_object_or_404(Title, pk=title_id)
         if request.method == 'POST':
             if Review.objects.filter(
-                title=title, author=request.user
+                title__id=title_id, author=request.user
             ).exists():
                 raise serializers.ValidationError(
                     "Нельзя добавить больше 1 комментария"
