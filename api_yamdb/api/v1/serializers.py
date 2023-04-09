@@ -20,34 +20,19 @@ class ErrorMessage:
     CONF_CODE_NOT_MATCH = "Confirmation code doesnt match the user"
 
 
-class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    username = serializers.CharField(max_length=150)
-
-    def validate_email(self, name):
-        if len(name) > 254:
-            raise serializers.ValidationError(ErrorMessage.BAD_NAME)
-        return name
-
+class SignUpSerializer(serializers.ModelSerializer):
     def validate_username(self, name):
         if name == "me" or not re.match(r"^[\w.@+-]+\Z", name):
             raise serializers.ValidationError(ErrorMessage.BAD_NAME)
         return name
 
-    def validate(self, data):
-        username = data.get("username")
-        email = data.get("email")
-        if (
-            User.objects.filter(username=username).exists()
-            and User.objects.get(username=username).email != email
-        ):
-            raise serializers.ValidationError(ErrorMessage.USERNAME_NOT_UNIQUE)
-        if (
-            User.objects.filter(email=email).exists()
-            and User.objects.get(email=email).username != username
-        ):
-            raise serializers.ValidationError(ErrorMessage.EMAIL_NOT_UNIQUE)
-        return data
+    def create(self, validated_data):
+        email = validated_data["email"]
+        confirmation_code = uuid.uuid3(uuid.NAMESPACE_X500, email)
+        return User.objects.create(
+            **validated_data,
+            confirmation_code=confirmation_code
+        )
 
     class Meta:
         model = User
@@ -99,11 +84,6 @@ class UserSerializer(serializers.ModelSerializer):
         if not name:
             raise serializers.ValidationError(ErrorMessage.NO_USERNAME)
         return name
-
-    def validate_email(self, email):
-        if not email:
-            raise serializers.ValidationError(ErrorMessage.NO_EMAIL)
-        return email
 
 
 class ProfileSerializer(UserSerializer):
