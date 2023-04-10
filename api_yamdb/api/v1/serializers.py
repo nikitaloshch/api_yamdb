@@ -26,8 +26,21 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(ErrorMessage.BAD_NAME)
         return name
 
+    def is_valid(self, *, raise_exception=False):
+        if hasattr(self, 'initial_data'):
+            username = self.initial_data.get("username")
+            email = self.initial_data.get("email")
+            if User.objects.filter(username=username, email=email).exists():
+                self._validated_data = self.get_initial()
+                self._errors = {}
+                return True
+        return super().is_valid(raise_exception)
+
     def create(self, validated_data):
-        email = validated_data["email"]
+        username = validated_data.get("username")
+        email = validated_data.get("email")
+        if User.objects.filter(username=username, email=email).exists():
+            return User.objects.get(**validated_data)
         confirmation_code = uuid.uuid3(uuid.NAMESPACE_X500, email)
         return User.objects.create(
             **validated_data,

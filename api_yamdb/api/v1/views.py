@@ -34,29 +34,17 @@ from .serializers import (
 @permission_classes((AllowAny,))
 def sign_up(request):
     serializer = SignUpSerializer(data=request.data)
-
-    username = serializer.initial_data.get("username")
-    email = serializer.initial_data.get("email")
-    # запрос с ОБОИМИ неуникальными значениями username и email - это
-    # корректный запрос по условиям задачи. Но поскольку в модели каждое
-    # из этих полей уникально, то метод is_valid для проверки такого запроса
-    # вызывать нельзя
-    if not User.objects.filter(username=username, email=email).exists():
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    username = serializer.validated_data.get("username")
     user = User.objects.get(username=username)
     send_mail(
         subject=settings.DEFAULT_EMAIL_SUBJECT,
         message=str(user.confirmation_code),
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=(email,),
+        recipient_list=(user.email,),
     )
-    # используем initial_data, так как при определенных указанных выше условиях
-    # метод is_valid не вызывается, следовательно validated_data не образуются
-    # (если поток исполнения дошел до этого места, то использовать
-    # initial_data безопасно)
-    return Response(serializer.initial_data, status=status.HTTP_200_OK)
+    return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
